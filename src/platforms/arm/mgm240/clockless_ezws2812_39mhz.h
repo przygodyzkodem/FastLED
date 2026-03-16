@@ -60,18 +60,22 @@ class ClocklessController_ezWS2812_GPIO_39MHz : public CPixelLEDController<RGB_O
 
 private:
     u16 mNumLeds;
+    typename FastPin<DATA_PIN>::port_ptr_t mPort;
+    typename FastPin<DATA_PIN>::port_t mPinMask;
+    typename FastPin<DATA_PIN>::port_t mHi;
+    typename FastPin<DATA_PIN>::port_t mLo;
 
     /// @brief Send '1' bit - optimized for 39MHz
     /// 0.8µs high (~31 cycles), 0.45µs low (~17 cycles)
     FASTLED_FORCE_INLINE void send1() const {
-        FastPin<DATA_PIN>::hi();
+        *mPort = mHi;
         asm volatile(
             "nop; nop; nop; nop; nop; nop; nop; nop;"  // 8
             "nop; nop; nop; nop; nop; nop; nop; nop;"  // 16
             "nop; nop; nop; nop; nop; nop; nop; nop;"  // 24
             "nop; nop; nop; nop; nop; nop; nop;"       // 31
         );
-        FastPin<DATA_PIN>::lo();
+        *mPort = mLo;
         asm volatile(
             "nop; nop; nop; nop; nop; nop; nop; nop;"  // 8
             "nop; nop; nop; nop; nop; nop; nop; nop;"  // 16
@@ -82,12 +86,12 @@ private:
     /// @brief Send '0' bit - optimized for 39MHz
     /// 0.4µs high (~15 cycles), 0.85µs low (~33 cycles)
     FASTLED_FORCE_INLINE void send0() const {
-        FastPin<DATA_PIN>::hi();
+        *mPort = mHi;
         asm volatile(
             "nop; nop; nop; nop; nop; nop; nop; nop;"  // 8
             "nop; nop; nop; nop; nop; nop; nop;"       // 15
         );
-        FastPin<DATA_PIN>::lo();
+        *mPort = mLo;
         asm volatile(
             "nop; nop; nop; nop; nop; nop; nop; nop;"  // 8
             "nop; nop; nop; nop; nop; nop; nop; nop;"  // 16
@@ -111,14 +115,14 @@ private:
         if (byte_value & 0x01) send1(); else send0(); // bit 0
     }
 
-    /// @brief Send RGB pixel data in GRB order (WS2812 protocol)
-    /// @param r Red channel value
-    /// @param g Green channel value
-    /// @param b Blue channel value
-    FASTLED_FORCE_INLINE void sendPixel(u8 r, u8 g, u8 b) const {
-        sendByte(g); // Green first
-        sendByte(r); // Red second
-        sendByte(b); // Blue third
+    /// @brief Send pixel data in output order
+    /// @param c0 Byte 0 in RGB_ORDER
+    /// @param c1 Byte 1 in RGB_ORDER
+    /// @param c2 Byte 2 in RGB_ORDER
+    FASTLED_FORCE_INLINE void sendPixel(u8 c0, u8 c1, u8 c2) const {
+        sendByte(c0);
+        sendByte(c1);
+        sendByte(c2);
     }
 
 public:
@@ -128,7 +132,11 @@ public:
     /// @brief Initialize the controller
     virtual void init() override {
         FastPin<DATA_PIN>::setOutput();
-        FastPin<DATA_PIN>::lo();
+        mPinMask = FastPin<DATA_PIN>::mask();
+        mPort = FastPin<DATA_PIN>::port();
+        mHi = *mPort | mPinMask;
+        mLo = *mPort & ~mPinMask;
+        *mPort = mLo;
     }
 
     /// @brief Get maximum refresh rate
@@ -136,29 +144,48 @@ public:
         return 400; // Conservative rate for GPIO timing
     }
 
-protected:
+
     /// @brief Output pixels to LED strip - optimized for bulk processing
     /// @param pixels FastLED pixel controller with RGB data
     virtual void showPixels(PixelController<RGB_ORDER>& pixels) override {
-        mNumLeds = pixels.size();
+        // Force line low before the reset/latch period
+        *mPort = *mPort & ~mPinMask;
+        // Ensure a clean reset/latch before sending a new frame
+        delayMicroseconds(300);
 
-        // Disable interrupts for precise timing - critical for WS2812
-        cli();
+        // Disable all interrupts for precise timing - critical for WS2812
+        __disable_irq();
+
+        // Deterministic low gap before first bit (>= 50us)
+        {
+            constexpr u32 kResetCycles = (F_CPU / 1000000UL) * 80UL;
+            for (u32 i = 0; i < kResetCycles; i++) {
+                asm volatile("nop");
+            }
+        }
+
+        // Prepare cached port values for this frame (with interrupts off)
+        mHi = *mPort | mPinMask;
+        mLo = *mPort & ~mPinMask;
+        *mPort = mLo;
+
+        // Prime dithering for the first byte
+        pixels.preStepFirstByteDithering();
 
         // Process all pixels in tight loop
         while (pixels.has(1)) {
-            u8 r = pixels.loadAndScale0();
-            u8 g = pixels.loadAndScale1();
-            u8 b = pixels.loadAndScale2();
+            u8 c0 = pixels.loadAndScale0();
+            u8 c1 = pixels.loadAndScale1();
+            u8 c2 = pixels.loadAndScale2();
 
-            sendPixel(r, g, b);
+            sendPixel(c0, c1, c2);
 
             pixels.advanceData();
             pixels.stepDithering();
         }
 
         // Re-enable interrupts
-        sei();
+        __enable_irq();
 
         // WS2812 reset/latch time (>50µs low)
         delayMicroseconds(300);

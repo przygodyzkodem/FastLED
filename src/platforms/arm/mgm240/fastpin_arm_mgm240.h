@@ -134,6 +134,9 @@ public:
     /// Get the bit mask for this pin within its port
     FASTLED_FORCE_INLINE static port_t mask() { return _MASK; }
 
+    /// Get numeric port index (0=A, 1=B, 2=C, 3=D)
+    FASTLED_FORCE_INLINE static u8 port_number() { return _PORT_NUMBER; }
+
     /// Read pin input state
     FASTLED_FORCE_INLINE static bool isset() {
         return GPIO_PinInGet(_PORT_STRUCT::port(), _PIN_NUMBER) != 0;
@@ -154,6 +157,38 @@ public:
 #define PORT_NUM_C 2
 #define PORT_NUM_D 3
 
+#if defined(ARDUINO_BOARD_XIAO_MG24)
+// Pin mappings for Seeed Studio XIAO MG24 (Sense)
+// Based on Silicon Labs core variant: variants/xiao_mg24/arduino_variant.cpp
+_FL_DEFPIN(0,  0, C, (1 << 0));   // D0  - PC0
+_FL_DEFPIN(1,  1, C, (1 << 1));   // D1  - PC1
+_FL_DEFPIN(2,  2, C, (1 << 2));   // D2  - PC2
+_FL_DEFPIN(3,  3, C, (1 << 3));   // D3  - PC3
+_FL_DEFPIN(4,  4, C, (1 << 4));   // D4  - PC4
+_FL_DEFPIN(5,  5, C, (1 << 5));   // D5  - PC5
+_FL_DEFPIN(6,  6, C, (1 << 6));   // D6  - PC6
+_FL_DEFPIN(7,  7, C, (1 << 7));   // D7  - PC7
+_FL_DEFPIN(8,  3, A, (1 << 3));   // D8  - PA3
+_FL_DEFPIN(9,  4, A, (1 << 4));   // D9  - PA4
+_FL_DEFPIN(10, 5, A, (1 << 5));   // D10 - PA5
+_FL_DEFPIN(11, 9, A, (1 << 9));   // D11 - PA9
+_FL_DEFPIN(12, 8, A, (1 << 8));   // D12 - PA8
+_FL_DEFPIN(13, 2, B, (1 << 2));   // D13 - PB2
+_FL_DEFPIN(14, 3, B, (1 << 3));   // D14 - PB3
+_FL_DEFPIN(15, 0, B, (1 << 0));   // D15 - PB0
+_FL_DEFPIN(16, 1, B, (1 << 1));   // D16 - PB1
+_FL_DEFPIN(17, 0, A, (1 << 0));   // D17 - PA0
+_FL_DEFPIN(18, 2, D, (1 << 2));   // D18 - PD2
+_FL_DEFPIN(19, 5, D, (1 << 5));   // D19 - PD5
+_FL_DEFPIN(20, 7, A, (1 << 7));   // D20 - PA7 (LED)
+_FL_DEFPIN(21, 6, A, (1 << 6));   // D21 - PA6
+_FL_DEFPIN(22, 8, C, (1 << 8));   // D22 - PC8
+_FL_DEFPIN(23, 9, C, (1 << 9));   // D23 - PC9
+_FL_DEFPIN(24, 4, D, (1 << 4));   // D24 - PD4
+_FL_DEFPIN(25, 3, D, (1 << 3));   // D25 - PD3
+_FL_DEFPIN(26, 4, B, (1 << 4));   // D26 - PB4
+_FL_DEFPIN(27, 5, B, (1 << 5));   // D27 - PB5
+#else
 // Pin mappings for Arduino Nano Matter (MGM240SD22VNA)
 // Based on Arduino Nano form factor - verify against hardware documentation
 
@@ -188,6 +223,7 @@ _FL_DEFPIN(22, 0, D, (1 << 0));   // D22 - PD00
 _FL_DEFPIN(23, 1, D, (1 << 1));   // D23 - PD01
 _FL_DEFPIN(24, 2, D, (1 << 2));   // D24 - PD02
 _FL_DEFPIN(25, 3, D, (1 << 3));   // D25 - PD03
+#endif
 
 #define HAS_HARDWARE_PIN_SUPPORT
 }  // namespace fl

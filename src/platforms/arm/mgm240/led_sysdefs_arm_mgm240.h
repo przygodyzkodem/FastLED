@@ -33,9 +33,10 @@
 /// (Cortex-M33 is backward compatible with M3 instruction set)
 #define FL_IS_ARM_M3
 
-/// Enable interrupt-aware timing for accurate LED control
+/// Disable interrupts during GPIO clockless output by default for MG24
+/// (more robust timing on this core). Can be overridden in sketch.
 #ifndef FASTLED_ALLOW_INTERRUPTS
-#define FASTLED_ALLOW_INTERRUPTS 1
+#define FASTLED_ALLOW_INTERRUPTS 0
 #endif
 
 #if FASTLED_ALLOW_INTERRUPTS == 1
@@ -72,6 +73,18 @@
 #ifndef F_CPU
 #define F_CPU 39000000L  ///< 39 MHz default system clock
 #endif
+
+// Slightly tighter WS2812B-V5 timing for MG24 GPIO (helps reduce marginal bit errors)
+#ifndef FASTLED_WS2812B_V5_T1
+#define FASTLED_WS2812B_V5_T1 220
+#endif
+#ifndef FASTLED_WS2812B_V5_T2
+#define FASTLED_WS2812B_V5_T2 330
+#endif
+#ifndef FASTLED_WS2812B_V5_T3
+#define FASTLED_WS2812B_V5_T3 700
+#endif
+
 
 /// ARM platforms don't use PROGMEM (flash storage macros)
 #ifndef FASTLED_USE_PROGMEM

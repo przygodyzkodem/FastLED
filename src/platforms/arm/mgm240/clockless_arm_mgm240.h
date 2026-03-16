@@ -142,11 +142,21 @@ protected:
         FASTLED_REGISTER data_t lo = *port & ~FastPin<DATA_PIN>::mask();
         *port = lo;
 
+        // Ensure a deterministic reset low gap before first bit
+        cli();
+        {
+            const u32 reset_us = (TIMING::RESET ? TIMING::RESET : 80);
+            const u32 reset_cycles = (F_CPU / 1000000UL) * reset_us;
+            const u32 start = ARM_DWT_CYCCNT;
+            while ((ARM_DWT_CYCCNT - start) < reset_cycles) {
+                // tight wait
+            }
+        }
+
         // Setup the pixel controller and load/scale the first byte
         pixels.preStepFirstByteDithering();
         FASTLED_REGISTER u8 b = pixels.loadAndScale0();
 
-        cli();
         u32 next_mark = ARM_DWT_CYCCNT + (T1+T2+T3);
 
         while(pixels.has(1)) {
@@ -182,6 +192,7 @@ protected:
     }
 
 };
+
 }  // namespace fl
 
 FL_DISABLE_WARNING_POP
