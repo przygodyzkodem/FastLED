@@ -686,15 +686,15 @@ private:
 /// @tparam DATA_PIN the pin to write data out on
 /// @tparam RGB_ORDER the RGB ordering for these LEDs (typically GRB for WS2812)
 ///
-/// This controller uses optimized GPIO manipulation with frequency-specific timing.
-/// Automatically selects 39MHz or 78MHz implementation based on F_CPU.
+/// This controller uses the MGM240/MG24 DWT-based clockless controller for
+/// more robust timing on Cortex-M33.
 ///
 /// Usage:
 /// @code
 /// FastLED.addLeds<EZWS2812_GPIO, 7, GRB>(leds, NUM_LEDS);
 /// @endcode
 template<fl::u8 DATA_PIN, EOrder RGB_ORDER = GRB>
-using EZWS2812_GPIO = fl::ClocklessController_ezWS2812_GPIO_Auto<DATA_PIN, RGB_ORDER>;
+using EZWS2812_GPIO = fl::ClocklessController<DATA_PIN, fl::TIMING_WS2812B_V5, RGB_ORDER>;
 
 #ifdef FASTLED_USES_EZWS2812_SPI
 
