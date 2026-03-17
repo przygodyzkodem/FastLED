@@ -118,7 +118,7 @@ using EZWS2812_GPIO = ClocklessController<DATA_PIN, TIMING_WS2812B_V5, RGB_ORDER
 
 /// @brief 39MHz optimized GPIO controller (DWT-based)
 template<u8 DATA_PIN, EOrder RGB_ORDER = GRB>
-using EZWS2812_GPIO_39MHZ = ClocklessController<DATA_PIN, TIMING_WS2812B_V5, RGB_ORDER>;
+using EZWS2812_GPIO_39MHZ = ClocklessController_ezWS2812_GPIO_39MHz<DATA_PIN, RGB_ORDER>;
 
 /// @brief 78MHz optimized GPIO controller (fixed-NOP implementation)
 template<u8 DATA_PIN, EOrder RGB_ORDER = GRB>

@@ -100,7 +100,6 @@ private:
             "nop;"                                      // 33
         );
     }
-
     /// @brief Send byte with MSB first - optimized tight loop
     /// @param byte_value 8-bit value to send
     FASTLED_FORCE_INLINE void sendByte(u8 byte_value) const {
@@ -114,6 +113,7 @@ private:
         if (byte_value & 0x02) send1(); else send0(); // bit 1
         if (byte_value & 0x01) send1(); else send0(); // bit 0
     }
+
 
     /// @brief Send pixel data in output order
     /// @param c0 Byte 0 in RGB_ORDER
@@ -150,16 +150,14 @@ public:
     virtual void showPixels(PixelController<RGB_ORDER>& pixels) override {
         // Force line low before the reset/latch period
         *mPort = *mPort & ~mPinMask;
-        // Ensure a clean reset/latch before sending a new frame
-        delayMicroseconds(300);
 
         // Disable all interrupts for precise timing - critical for WS2812
         __disable_irq();
 
-        // Deterministic low gap before first bit (>= 50us)
+        // Deterministic low gap before first bit (>= 50us, use 120us)
         {
-            constexpr u32 kResetCycles = (F_CPU / 1000000UL) * 80UL;
-            for (u32 i = 0; i < kResetCycles; i++) {
+            constexpr u32 reset_cycles = (F_CPU / 1000000) * 120;
+            for (u32 i = 0; i < reset_cycles; i++) {
                 asm volatile("nop");
             }
         }
